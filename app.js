@@ -23,8 +23,12 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// MongoDB Connection with better error handling
-mongoose.connect(process.env.MONGO_URI, {
+// ✅ FIXED: MongoDB Connection with fallback URI
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://it21004_db_user:test12345@cluster0.xsfx2yw.mongodb.net/researchdb?retryWrites=true&w=majority';
+
+console.log('🔧 MongoDB URI:', MONGO_URI ? 'Present' : 'Missing');
+
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
