@@ -7,11 +7,13 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5800;
 
-// CORS Configuration - Railway deployment ready
+// ✅ FIXED: Hardcode Railway port
+const PORT = 5800;
+
+// CORS Configuration
 app.use(cors({
-  origin: true,  // ✅ All domains allowed for now
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -23,22 +25,16 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ FIXED: MongoDB Connection with fallback URI
+// ✅ FIXED: MongoDB Connection with fallback
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://it21004_db_user:test12345@cluster0.xsfx2yw.mongodb.net/researchdb?retryWrites=true&w=majority';
 
-console.log('🔧 MongoDB URI:', MONGO_URI ? 'Present' : 'Missing');
-
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(MONGO_URI)
 .then(() => {
   console.log('✅ MongoDB Connected Successfully');
   console.log('📊 Database:', mongoose.connection.name);
 })
 .catch((err) => {
   console.error('❌ MongoDB Connection Error:', err.message);
-  console.log('🔧 Please check your MONGO_URI in environment variables');
 });
 
 // Global mongoose for routes
@@ -51,6 +47,11 @@ app.use('/api/user', require('./routes/user'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/notifications', require('./routes/notification'));
 
+// ✅ FIXED: Simple Root Route for Railway Health Check
+app.get('/', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -58,8 +59,7 @@ app.get('/api/health', (req, res) => {
     message: 'MBSTU Research Gate API is running',
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    port: PORT,
-    environment: process.env.NODE_ENV
+    port: PORT
   });
 });
 
@@ -80,7 +80,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Success response
     res.status(200).json({
       success: true,
-      needsVerification: true,  // ✅ এই লাইন গুরুত্বপূর্ণ
+      needsVerification: true,
       message: "Registration successful! Please verify your email."
     });
     
@@ -92,23 +92,12 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    message: '🚀 Welcome to MBSTU Research Gate Backend API',
-    version: '1.0.0',
-    documentation: 'Visit /api/health for status',
-    deployed_on: 'Railway'
-  });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('🔥 Error:', err.stack);
+  console.error('Error:', err.message);
   res.status(500).json({
     success: false,
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    message: 'Something went wrong!'
   });
 });
 
@@ -116,24 +105,16 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
-    available_routes: [
-      '/api/health',
-      '/api/test',
-      '/api/auth',
-      '/api/posts',
-      '/api/user'
-    ]
+    message: 'Route not found'
   });
 });
 
-// Server startup
+// ✅ FIXED: Server startup with Railway port
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🎯 Server running on port ${PORT}`);
-  console.log(`✅ Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`✅ Health check: http://localhost:${PORT}/`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
   console.log(`📅 Started at: ${new Date().toLocaleString()}`);
-  console.log(`=========================================\n`);
 });
 
 module.exports = app;
